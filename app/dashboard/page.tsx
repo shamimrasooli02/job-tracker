@@ -17,6 +17,8 @@ export default function Dashboard() {
   const [company, setCompany] = useState("");
   const [role, setRole] = useState("");
   const [error, setError] = useState("");
+  const [jobText, setJobText] = useState("");
+  const [analyzing, setAnalyzing] = useState(false);
 
   async function load() {
     const { data, error } = await supabase
@@ -52,9 +54,54 @@ export default function Dashboard() {
     load();
   }
 
+  async function analyze() {
+    if (!jobText) return;
+    setAnalyzing(true);
+    const res = await fetch("/api/analyze", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ jobText }),
+    });
+    const data = await res.json();
+    setCompany(data.company || "");
+    setRole(data.role || "");
+    setAnalyzing(false);
+  }
+
+  const counts = STATUSES.reduce((acc, s) => {
+    acc[s] = apps.filter((a) => a.status === s).length;
+    return acc;
+  }, {} as Record<string, number>);
+
   return (
     <main className="mx-auto max-w-2xl p-8">
       <h1 className="mb-4 text-2xl font-bold">My Applications</h1>
+
+      <div className="mb-6 grid grid-cols-4 gap-2">
+        {STATUSES.map((s) => (
+          <div key={s} className="rounded border p-3 text-center">
+            <p className="text-2xl font-bold">{counts[s]}</p>
+            <p className="text-sm capitalize text-gray-500">{s}</p>
+          </div>
+        ))}
+      </div>
+
+      <div className="mb-4">
+        <textarea
+          className="mb-2 w-full rounded border p-2"
+          placeholder="Paste a job posting here..."
+          rows={4}
+          value={jobText}
+          onChange={(e) => setJobText(e.target.value)}
+        />
+        <button
+          className="rounded border px-4 py-2 text-sm"
+          onClick={analyze}
+          disabled={analyzing}
+        >
+          {analyzing ? "Analyzing..." : "✨ Auto-fill with AI"}
+        </button>
+      </div>
 
       <div className="mb-6 flex gap-2">
         <input
